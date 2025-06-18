@@ -157,24 +157,30 @@ class HeyGenAPI:
                     else:
                         st.error(f"Creation failed: {result.get('msg', 'Unknown error')}")
                 else:
-                    st.error(f"Creation failed: {response.text}")
+                    st.error(f"Creation failed: Status {response.status_code}")
                 return None
             except Exception as e:
                 st.error(f"Creation exception: {str(e)}")
                 return None
     
     def upload_media(self, image_data: bytes) -> str:
-        """Upload scene image to HeyGen media library"""
-        url = f"{self.base_url}/media/upload"
+        """Upload scene image to HeyGen media library (updated endpoint)"""
+        url = f"{self.base_url}/media"  # 修正为正确的端点
         
+        # 创建正确的数据格式
         data = {
-            "media_type": "image",
-            "media_content": base64.b64encode(image_data).decode("utf-8")
+            "media": base64.b64encode(image_data).decode("utf-8"),
+            "media_type": "image"
         }
         
         with st.spinner("Uploading scene image..."):
             try:
                 response = requests.post(url, headers=self.headers, json=data)
+                
+                # 调试信息
+                st.write(f"Request URL: {url}")
+                st.write(f"Status Code: {response.status_code}")
+                
                 if response.status_code == 200:
                     result = response.json()
                     if result.get("code") == 0:
@@ -183,7 +189,11 @@ class HeyGenAPI:
                     else:
                         st.error(f"Upload failed: {result.get('msg', 'Unknown error')}")
                 else:
-                    st.error(f"Upload failed: {response.text}")
+                    # 显示更详细的错误信息
+                    error_msg = f"Upload failed: Status {response.status_code}"
+                    if response.text:
+                        error_msg += f", Response: {response.text[:200]}"
+                    st.error(error_msg)
                 return None
             except Exception as e:
                 st.error(f"Upload exception: {str(e)}")
@@ -233,7 +243,7 @@ class HeyGenAPI:
                     else:
                         st.error(f"Generation failed: {result.get('msg', 'Unknown error')}")
                 else:
-                    st.error(f"Generation failed: {response.text}")
+                    st.error(f"Generation failed: Status {response.status_code}")
                 return None
             except Exception as e:
                 st.error(f"Generation exception: {str(e)}")
@@ -252,7 +262,7 @@ class HeyGenAPI:
                 else:
                     st.error(f"Query failed: {result.get('msg', 'Unknown error')}")
             else:
-                st.error(f"Query failed: {response.text}")
+                st.error(f"Query failed: Status {response.status_code}")
             return None
         except Exception as e:
             st.error(f"Query exception: {str(e)}")
@@ -360,7 +370,7 @@ if submit_button:
     scene_image = Image.open(BytesIO(scene_image_data))
     st.image(scene_image, caption="Generated Scene", use_column_width=True)
     
-    # 2. Upload scene to HeyGen
+    # 2. Upload scene to HeyGen (使用修复后的端点)
     status_text.subheader("Step 2: Uploading scene to video platform...")
     media_id = heygen_client.upload_media(scene_image_data)
     progress_bar.progress(40)
@@ -455,5 +465,3 @@ with st.expander("User Guide"):
     - Uses HeyGen for 3D avatar creation and video synthesis
     - Process takes 3-10 minutes
     """)
-
-# F
